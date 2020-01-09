@@ -234,7 +234,7 @@ class SentimentAnalysis():
         self.comp_list = [5,10,20,50,100,500,1000]
         self.acc_list_comp = []
         self.t_learn_list_comp = []
-        self._pred_list_comp = []
+        self.pred_list_comp = []
 
         for n in self.comp_list:
 
@@ -245,7 +245,7 @@ class SentimentAnalysis():
 
             svm_clf_pca = sklearn.svm.SVC(kernel='rbf', gamma='scale')
             t_start_pca = time.perf_counter()
-            svm_clf_pca.fit(pca_x, Y_train)
+            svm_clf_pca.fit(pca_x, self.Y_train)
             t_pca = time.perf_counter() - t_start_pca
 
             t = time.perf_counter()
@@ -254,7 +254,7 @@ class SentimentAnalysis():
             
             self.acc_list_comp.append(sklearn.metrics.accuracy_score(self.Y_dev, preds_pca))
             self.t_learn_list_comp.append(t_pca)
-            self.t_pred_list_comp.append(t_pca_pred)
+            self.pred_list_comp.append(t_pca_pred)
             
             print(n)          
 
@@ -269,10 +269,10 @@ class SentimentAnalysis():
         pca_x = pca_transformer.fit_transform(self.std_x)
         pca_x_dev = pca_transformer.transform(self.std_x_dev)
 
-        for c in c_list:
+        for c in self.c_list:
             svm_clf_pca = sklearn.svm.SVC(kernel='rbf', gamma='scale', C=c)
             t_start_pca = time.perf_counter()
-            svm_clf_pca.fit(pca_x, Y_train)
+            svm_clf_pca.fit(pca_x, self.Y_train)
             t_pca = time.perf_counter() - t_start_pca
 
             t = time.perf_counter()
@@ -292,12 +292,12 @@ class SentimentAnalysis():
         self.t_vectorize_list_voc = []
         self.t_learn_list_voc = []
 
-        for vf in vocab_list:
+        for vf in self.vocab_list:
             t = time.perf_counter()
-            vocabulary = get_vocabulary(self.train_set, vf)
+            vocabulary = self.get_vocabulary(self.train_set, vf)
             # vector count and VADER analysis
-            Xvec = [(get_vector_text_all(vocabulary, x[0]), x[1]) for x in self.train_set]
-            Xvec_dev = [(get_vector_text_all(vocabulary, x[0]), x[1]) for x in self.dev_set]
+            Xvec = [(self.get_vector_text_all(vocabulary, x[0]), x[1]) for x in self.train_set]
+            Xvec_dev = [(self.get_vector_text_all(vocabulary, x[0]), x[1]) for x in self.dev_set]
 
             # TF-IDF vectorisation
             tfidf_vec = sklearn.feature_extraction.text.TfidfVectorizer(use_idf=True, max_features=500)
@@ -331,7 +331,7 @@ class SentimentAnalysis():
             
             svm_clf_pca = sklearn.svm.SVC(kernel='rbf', gamma='scale', C=0.8)
             t = time.perf_counter()
-            svm_clf_pca.fit(pca_x, Y_train)
+            svm_clf_pca.fit(pca_x, self.Y_train)
             t_pca = time.perf_counter() - t
 
             t = time.perf_counter()
@@ -342,7 +342,22 @@ class SentimentAnalysis():
             self.t_learn_list_voc.append(t_pca)
             self.t_vectorize_list_voc.append(t_vec)
             
-            print(vf)      
+            print(vf)  
+
+    def save_training_results(self):
+
+        with open('training_results.txt','w') as f:
+            f.write("Metrics without PCA")
+            f.write("\n")
+            f.write(sklearn.metrics.classification_report(self.Y_test, self.preds))
+            f.write("\n")
+            f.write("Metrics with PCA, n_components=20")
+            f.write("\n")
+            f.write(sklearn.metrics.classification_report(self.Y_test, self.preds_pca))
+            f.write("\n")
+            f.write("Without PCA learn t=" + str(self.t_std) + "   predict t=" + str(self.t_std_pred))
+            f.write("\n")
+            f.write("With PCA learn t=" + str(self.t_pca) + "   predict t=" + str(self.t_pca_pred))
 
     def save_optimisation_results(self):
         # SAVE RESULTS 
@@ -373,23 +388,30 @@ class SentimentAnalysis():
 # save_optimisation_results
 
 
-s = SentimentAnalysis()
+#s = SentimentAnalysis()
 #or
-#with open('sentiment_object.txt', 'rb') as f:
-#    s = pickle.load(f)
+s = []
+with open('sentiment_object.txt', 'rb') as f:
+    s = pickle.load(f)
 
-print("Init finished")
-s.vectorize_input_data()
-print("Data vectorised")
-s.train_svms()
-print("SVMs trained")
-s.make_predictions()
-print("Predictions made")
+#print("Init finished")
+#s.vectorize_input_data()
+#print("Data vectorised")
+#s.train_svms()
+#print("SVMs trained")
+#s.make_predictions()
+#print("Predictions made")
 s.show_metrics()
+s.save_training_results()
+
+s.optimise_pca()
+s.optimise_c()
+s.optimise_vocab_feature()
+s.save_optimisation_results()
 
 # save object
-with open('sentiment_object.txt', 'wb') as f:
-    pickle.dump(s, f)
+#with open('sentiment_object.txt', 'wb') as f:
+#    pickle.dump(s, f)
 
                
 
