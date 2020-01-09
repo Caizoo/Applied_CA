@@ -1,0 +1,8 @@
+Dev_results/*
+Hateval/*
+IMDb/*
+IMDb/dev/*
+IMDb/test/*
+IMDb/train/*
+Wine/*
+sentiment_object.txt
