@@ -37,9 +37,6 @@ class SentimentAnalysis():
         f_dev_pos   = open('IMDb/dev/imdb_dev_pos.txt','r', encoding="UTF-8")
         f_dev_neg   = open('IMDb/dev/imdb_dev_neg.txt','r', encoding="UTF-8")
 
-        p_in = open('positive.txt','r')
-        n_in = open('negative.txt','r')
-
         self.train_pos = []
         self.train_neg = []
         self.test_pos  = []
@@ -329,20 +326,75 @@ class SentimentAnalysis():
             
             t_vec = time.perf_counter() - t
             
-            svm_clf_pca = sklearn.svm.SVC(kernel='rbf', gamma='scale', C=0.8)
             t = time.perf_counter()
-            svm_clf_pca.fit(pca_x, self.Y_train)
-            t_pca = time.perf_counter() - t
+            svm_clf = sklearn.svm.SVC(kernel='rbf', gamma='scale', C=0.8)
+            svm_clf.fit(pca_x, self.Y_train)
+            t_learn = time.perf_counter() - t
 
-            t = time.perf_counter()
-            preds_pca = svm_clf_pca.predict(pca_x_dev)
-            t_pca_pred = time.perf_counter() - t
+            preds = svm_clf.predict(pca_x_dev)
             
-            self.acc_list_voc.append(sklearn.metrics.accuracy_score(self.Y_dev, preds_pca))
-            self.t_learn_list_voc.append(t_pca)
+            
+            self.acc_list_voc.append(sklearn.metrics.accuracy_score(self.Y_dev, preds))
+            self.t_learn_list_voc.append(t_learn)
             self.t_vectorize_list_voc.append(t_vec)
             
             print(vf)  
+
+    def optimise_tfidf(self):
+        self.tfidf_list = [100,200,500,1000,2000]
+        self.acc_list_tf = []
+        self.t_vectorize_list_tf = []
+        self.t_learn_list_tf = []
+
+        for tf in self.tfidf_list:
+            t = time.perf_counter()
+            vocabulary = self.get_vocabulary(self.train_set, 2000)
+            # vector count and VADER analysis
+            Xvec = [(self.get_vector_text_all(vocabulary, x[0]), x[1]) for x in self.train_set]
+            Xvec_dev = [(self.get_vector_text_all(vocabulary, x[0]), x[1]) for x in self.dev_set]
+
+            # TF-IDF vectorisation
+            tfidf_vec = sklearn.feature_extraction.text.TfidfVectorizer(use_idf=True, max_features=tf)
+            tfX = tfidf_vec.fit_transform(self.train_pos+self.train_neg)
+            tfX_dev = tfidf_vec.transform(self.dev_pos+self.dev_neg)
+
+            # combining features
+            tfX_reshape = scipy.sparse.csr_matrix.toarray(tfX)
+            tfX_dev_reshape = scipy.sparse.csr_matrix.toarray(tfX_dev)
+
+            Xvec_all = Xvec.copy()
+            Xvec_all_std = Xvec.copy()
+            Xvec_all_dev = Xvec_dev.copy()
+            Xvec_all_dev_std = Xvec_dev.copy()
+
+            for i in range(0, len(tfX_reshape)):
+                Xvec_all[i] = (np.append(Xvec_all[i][0], np.asarray(tfX_reshape[i])), Xvec_all[i][1])
+            for i in range(0, len(tfX_dev_reshape)):
+                Xvec_all_dev[i] = np.append(Xvec_all_dev[i][0], np.asarray(tfX_dev_reshape[i]))
+            
+            scaler = sklearn.preprocessing.StandardScaler()    
+            nx_all = [x[0] for x in Xvec_all]
+            std_x = scaler.fit_transform(nx_all)
+            std_x_dev = scaler.transform(Xvec_all_dev)
+
+            pca_transformer = sklearn.decomposition.PCA(n_components=20)
+            pca_x = pca_transformer.fit_transform(std_x)
+            pca_x_dev = pca_transformer.transform(std_x_dev)
+            
+            t_vec = time.perf_counter() - t
+            
+            t = time.perf_counter()
+            svm_clf = sklearn.svm.SVC(kernel='rbf', gamma='scale', C=0.8)
+            svm_clf.fit(pca_x, self.Y_train)
+            t_learn = time.perf_counter() - t
+
+            preds = svm_clf_pca.predict(pca_x_dev)
+            
+            self.acc_list_tf.append(sklearn.metrics.accuracy_score(self.Y_dev, preds))
+            self.t_learn_list_tf.append(t_learn)
+            self.t_vectorize_list_tf.append(t_vec)
+            
+            print(tf)
 
     def save_training_results(self):
 
@@ -375,21 +427,21 @@ class SentimentAnalysis():
         self.write_file(self.t_learn_list_voc, 'Dev_results/t_learn_list_voc.txt')
         self.write_file(self.t_vectorize_list_voc, 'Dev_results/t_vectorize_list_voc.txt')     
 
-
-# vectorize_input_data
-# train_svms
-# make_predictions
-# show_metrics
+# METHODS TO CALL IN ORDER
+# vectorize_input_data()
+# train_svms()
+# make_predictions()
+# show_metrics()
 #
-#
-# optimise_pca
-# optimise_c
-# optimise_vocab_feature
-# save_optimisation_results
+# DEVELOPMENT SET OPTIMISATION METHODS
+# optimise_pca()
+# optimise_c()
+# optimise_vocab_feature()
+# save_optimisation_results()
 
 
-#s = SentimentAnalysis()
-#or
+s = SentimentAnalysis()
+# OR LOAD A SERIALISED OBJECT
 s = []
 with open('sentiment_object.txt', 'rb') as f:
     s = pickle.load(f)
@@ -402,16 +454,26 @@ with open('sentiment_object.txt', 'rb') as f:
 #s.make_predictions()
 #print("Predictions made")
 s.show_metrics()
-s.save_training_results()
+#s.save_training_results()
+#print("Results saved")
 
-s.optimise_pca()
-s.optimise_c()
-s.optimise_vocab_feature()
-s.save_optimisation_results()
+#print("Development set optimisation started")
+#s.optimise_pca()
+#print("PCA components optimised")
+#s.optimise_c()
+#print("C regularisation optimised")
+#s.optimise_vocab_feature()
+#print("Vocabulary feature size optimised")
+s.optimise_tfidf()
+print(self.acc_list_tf)
+#s.save_optimisation_results()
+#print("Optimisation results saved")
 
 # save object
 #with open('sentiment_object.txt', 'wb') as f:
 #    pickle.dump(s, f)
+
+print("SentimentAnalysis object saved")
 
                
 
