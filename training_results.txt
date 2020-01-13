@@ -1,22 +1,22 @@
 Metrics without PCA
               precision    recall  f1-score   support
 
-           0       0.90      0.85      0.87      2501
-           1       0.86      0.91      0.88      2499
+           0       0.90      0.86      0.88      2501
+           1       0.87      0.91      0.89      2499
 
-    accuracy                           0.88      5000
-   macro avg       0.88      0.88      0.88      5000
-weighted avg       0.88      0.88      0.88      5000
+    accuracy                           0.89      5000
+   macro avg       0.89      0.89      0.89      5000
+weighted avg       0.89      0.89      0.89      5000
 
-Metrics with PCA, n_components=20
+Metrics with PCA, n_components=50
               precision    recall  f1-score   support
 
-           0       0.88      0.85      0.87      2501
-           1       0.86      0.89      0.87      2499
+           0       0.90      0.88      0.89      2501
+           1       0.89      0.90      0.89      2499
 
-    accuracy                           0.87      5000
-   macro avg       0.87      0.87      0.87      5000
-weighted avg       0.87      0.87      0.87      5000
+    accuracy                           0.89      5000
+   macro avg       0.89      0.89      0.89      5000
+weighted avg       0.89      0.89      0.89      5000
 
-Without PCA learn t=499.54734890000003   predict t=98.68304320000004
-With PCA learn t=3.1450833000000102   predict t=0.5758066999999301
+Without PCA learn t=1796.2319615   predict t=268.0228642999996
+With PCA learn t=5.350414099999853   predict t=1.1909845000000132
